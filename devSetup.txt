@@ -13,7 +13,17 @@ npm i -g npm@latest
 
 https://docs.mongodb.com/manual/tutorial/install-mongodb-on-amazon/
 
+
+sudo service mongod start
+// setup some data
+// mongo
+// use my-blog
+// db.articles.insertOne({name: "asd", title: "a s d", content: ["asdqwe, asdqwe"]})
+// db.articles.insertOne({name: "qwe", title: "q w e", content: ["qwe 123, qwe 321"]})
+
 // keep up and running
 npm i -g forever
 
-git clone 
+git clone https://github.com/sylwolveryn/react-playground.git
+
+forever start -c "npm start"
