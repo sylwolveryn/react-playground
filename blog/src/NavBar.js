@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import {timingAttack, webCachePoisoning} from "./constants/urls";
 
 const NavBar = () => (
     <nav>
@@ -8,10 +9,10 @@ const NavBar = () => (
                 <Link to="/">Home</Link>
             </li>
             <li>
-                <Link to="/about">About</Link>
+                <Link to={timingAttack}>Timing Attack</Link>
             </li>
             <li>
-                <Link to="/articles-list">Articles</Link>
+                <Link to={webCachePoisoning}>Web cache poisoning</Link>
             </li>
         </ul>
     </nav>

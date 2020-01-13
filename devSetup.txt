@@ -1,6 +1,6 @@
 
 to SSH into ec2 instance
-ssh -i c:\Users\Marcell_Neszt\.ssh\syl-aws-key.pem ec2-user@ec2-107-23-202-11.compute-1.amazonaws.com
+ssh -i c:\Users\%username%\.ssh\syl-aws-key.pem ec2-user@ec2-107-23-202-11.compute-1.amazonaws.com
 
 setup ec2 from scratch
 sudo yum install git
@@ -26,4 +26,12 @@ npm i -g forever
 
 git clone https://github.com/sylwolveryn/react-playground.git
 
-forever start -c "npm start"
+forever start -c "npm start" .
+// check: forever list
+
+sudo iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-ports 8000
+
+// sec groups:
+// launch-wizard-1. view inbound rules. view outbound rules
+// https://console.aws.amazon.com/ec2/v2/home?region=us-east-1#SecurityGroups:sort=groupId
+// inbound: edit / add rule  / http / save
