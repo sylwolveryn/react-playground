@@ -1,6 +1,9 @@
 const fetch = require('node-fetch');
 const {exampleCharSet} = require('./charSet.json');
 
+const devEnv = process.env.NODE_ENV === 'develop';
+const URL = devEnv ? 'http://localhost:8000/api/login' : 'http://ec2-107-23-202-11.compute-1.amazonaws.com/api/login';
+
 let password = exampleCharSet[0];
 let charIndex = 0;
 let exampleCharSetPointer = 0;
@@ -42,7 +45,7 @@ const calculateCharIndexMatched = (diff, threshold = 300) => {
 
 async function test() {
     const startTime = process.hrtime();
-    const result = await fetch('http://localhost:8000/api/login', {
+    const result = await fetch(URL, {
         method: 'post',
         headers: {'content-type': 'application/json'},
         body: JSON.stringify({accountId: 'asdasd', password})
