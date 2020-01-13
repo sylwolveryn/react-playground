@@ -38,17 +38,16 @@ const passwordCheckUnsafe_02 = async (s1, s2) => {
 
 const passwordCheckUnsafe_03 = async (s1, s2) => {
     if (s1.length !== s2.length) {
-        await sleep(300);
         return !!0;
     }
-
     for (let index = 0; index < s1.length ; index++) {
         await sleep(300); // in reality, this is not happening of course. However, with enough patience and not safe devops setup, it is happening in small
+        console.log('sleeping: ' + index);
         if (s1[index] !== s2[index]) {
-            return !!0;
+            return false;
         }
     }
-    return !!1;
+    return true;
 };
 
 app.post('/api/login', async (req, res) => {
