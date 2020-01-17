@@ -2,12 +2,15 @@ import React from 'react';
 
 const JasonWeb = () => {
     let jwt = require('jwt-simple');
-    let secret = Buffer.from('16562abcdaac26594301248613846a58', 'hex');
+    const secret = Buffer.from('16562abcdaac26594301248613846a58', 'hex');
     let accountId = '';
     let password = '';
+    let credentials = {};
 
     const createToken =  () => {
-        let credentials = {accountId: password};
+        credentials = {};
+        credentials[accountId] = password;
+        console.log(credentials);
         let token = jwt.encode(credentials, secret);
         return token;
     };
@@ -15,7 +18,7 @@ const JasonWeb = () => {
     const login = async (event) => {
         event.preventDefault();
         let token = createToken();
-        const result = await fetch('/api/login', {
+        const result = await fetch('/api/loginJwt', {
             method: 'post',
             headers: new Headers({'content-type': 'application/json'}),
             body: JSON.stringify({token})
@@ -27,7 +30,7 @@ const JasonWeb = () => {
     const register = async (event) => {
         event.preventDefault();
         let token = createToken();
-        const result = await fetch('/api/register', {
+        const result = await fetch('/api/registerJwt', {
             method: 'post',
             headers: new Headers({'content-type': 'application/json'}),
             body: JSON.stringify({token})
