@@ -22,7 +22,8 @@
     "module_name": "^1.0.0",
     "mongodb": "^3.2.3",
     "node-fetch": "^2.6.0",
-    "uuid": "^3.3.3"
+    "uuid": "^3.3.3",
+    "jwt-simple": "^0.5.6"
   },
   "devDependencies": {
     "@babel/core": "^7.4.3",

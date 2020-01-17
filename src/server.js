@@ -64,6 +64,20 @@ app.post('/api/login', async (req, res) => {
     res.send({authenticated});
 });
 
+app.post('/api/register', async (req, res) => {
+    const { accountId, password } = req.body;
+    const storedPassword = users[accountId];
+    if (!storedPassword) {
+        await sleep(777);
+        res.send({
+            error: 'no such user moron, and I probably shouldn\'t tell you this information....',
+            authenticated: false
+        });
+    }
+    const authenticated = await passwordCheckUnsafe_03(storedPassword, password);
+    res.send({authenticated});
+});
+
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname + '/build/index.html'));
 });
