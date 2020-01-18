@@ -64,7 +64,7 @@ const createToken =  (accountId, password) => {
     return token;
 };
 
-const tokenCheckUnsafe_00 = (token, secret) => {
+const getUsernameWithUnsafeCheck = (token) => {
     let tokenParts = token.split(".");
     let headerDecoded = JSON.parse(atob(tokenParts[0]));
     let payloadDecoded = JSON.parse(atob(tokenParts[1]));
@@ -98,6 +98,19 @@ app.post('/api/loginJWT', async (req, res) => {
     res.send({
         token: token,
         authenticated: false
+    });
+    //send some text on succesfull login with username
+});
+
+app.post('/api/getUserName', async (req, res) => {
+    let userName = 'Noone Yet';
+    let cookie =  req.headers.cookie.split('=');
+    if (cookie[0] === 'token') {
+        userName = getUsernameWithUnsafeCheck(cookie[1]);
+    }
+
+    res.send({
+        userName: userName
     });
     //send some text on succesfull login with username
 });

@@ -3,6 +3,7 @@ import React from 'react';
 const JasonWeb = () => {
     let accountId = '';
     let password = '';
+    let username = 'Noone Yet';
 
     const login = async (event) => {
         event.preventDefault();
@@ -40,10 +41,17 @@ const JasonWeb = () => {
         password = value;
     };
 
+    const checkUser = async (event) => {
+      const result = await fetch('/api/getUserName', {
+          method: 'post',
+          headers: new Headers({'content-type': 'application/json'}),
+      });
+    };
+
     return (
         <>
           <h1>LogIn</h1>
-          <h1 id="logedInUsername">ASD</h1>
+
             <form>
                 <label htmlFor="accountId">account</label>
                 <input id="accountId" type="text" onChange={updateAccountId}>
@@ -67,6 +75,8 @@ const JasonWeb = () => {
                 <hr />
                 <button onClick={register}>Register</button>
             </form>
+            <h2>{username}</h2>
+            <button onClick={checkUser} id="whoAmI">Who am I?</button>
         </>
     );
 };
