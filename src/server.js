@@ -102,15 +102,15 @@ app.post('/api/loginJWT', async (req, res) => {
     //send some text on succesfull login with username
 });
 
-app.post('/api/getUserName', async (req, res) => {
-    let userName = 'Noone Yet';
+app.post('/api/getUsername', async (req, res) => {
+    let username = 'Noone Yet';
     let cookie =  req.headers.cookie.split('=');
     if (cookie[0] === 'token') {
-        userName = getUsernameWithUnsafeCheck(cookie[1]);
+        username = getUsernameWithUnsafeCheck(cookie[1]);
     }
 
     res.send({
-        userName: userName
+        username: username
     });
     //send some text on succesfull login with username
 });

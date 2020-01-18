@@ -3,7 +3,6 @@ import React from 'react';
 const JasonWeb = () => {
     let accountId = '';
     let password = '';
-    let username = 'Noone Yet';
 
     const login = async (event) => {
         event.preventDefault();
@@ -42,10 +41,14 @@ const JasonWeb = () => {
     };
 
     const checkUser = async (event) => {
-      const result = await fetch('/api/getUserName', {
+      const result = await fetch('/api/getUsername', {
           method: 'post',
           headers: new Headers({'content-type': 'application/json'}),
       });
+
+      const body = await result.json();
+
+      document.getElementById('whoAmI').innerHTML = body.username;
     };
 
     return (
@@ -75,8 +78,9 @@ const JasonWeb = () => {
                 <hr />
                 <button onClick={register}>Register</button>
             </form>
-            <h2>{username}</h2>
-            <button onClick={checkUser} id="whoAmI">Who am I?</button>
+
+            <button onClick={checkUser}>Who am I?</button>
+            <label id="whoAmI">Noone Yet</label>
         </>
     );
 };
