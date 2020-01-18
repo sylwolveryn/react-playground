@@ -94,6 +94,7 @@ app.post('/api/login', async (req, res) => {
 app.post('/api/loginJWT', async (req, res) => {
     const { accountId, password } = req.body;
     let token = createToken(accountId, password);
+    res.cookie('token', token);
     res.send({
         token: token,
         authenticated: false
