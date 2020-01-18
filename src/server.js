@@ -57,7 +57,14 @@ const atob = (encodedString) => {
     return Buffer.from(encodedString, 'base64').toString();
 };
 
-const getValidatedUsernameUnsafe_00 = (token, secret) => {
+const createToken =  (accountId, password) => {
+    let credentials = {'username': accountId, "password": password };
+
+    let token = jwt.encode(credentials, secret);
+    return token;
+};
+
+const tokenCheckUnsafe_00 = (token, secret) => {
     let tokenParts = token.split(".");
     let headerDecoded = JSON.parse(atob(tokenParts[0]));
     let payloadDecoded = JSON.parse(atob(tokenParts[1]));
@@ -85,10 +92,10 @@ app.post('/api/login', async (req, res) => {
 });
 
 app.post('/api/loginJWT', async (req, res) => {
-    const { token } = req.body;
-    let username = getValidatedUsernameUnsafe_00(token, secret);
+    const { accountId, password } = req.body;
+    let token = createToken(accountId, password);
     res.send({
-        error: username,
+        token: token,
         authenticated: false
     });
     //send some text on succesfull login with username
