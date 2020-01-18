@@ -8,9 +8,8 @@ const JasonWeb = () => {
     let credentials = {};
 
     const createToken =  () => {
-        credentials = {};
-        credentials[accountId] = password;
-        console.log(credentials);
+        credentials = {'username': accountId, "password": password };
+
         let token = jwt.encode(credentials, secret);
         return token;
     };

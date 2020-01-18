@@ -53,10 +53,21 @@ const passwordCheckUnsafe_03 = async (s1, s2) => {
     return true;
 };
 
-const tokenCheckUnsafe_00 = async (token) => {
-    let decodedToken = jwt.decode(token, secret);
-    //do create vulnerable decode first don't check the secret if encode type is NONE
-    return true;
+const atob = (encodedString) => {
+    return Buffer.from(encodedString, 'base64').toString();
+};
+
+const getValidatedUsernameUnsafe_00 = (token, secret) => {
+    let tokenParts = token.split(".");
+    let headerDecoded = JSON.parse(atob(tokenParts[0]));
+    let payloadDecoded = JSON.parse(atob(tokenParts[1]));
+
+    if ("NONE" === headerDecoded.alg) {
+      return payloadDecoded.username;
+    }
+
+    let validatedAccount = jwt.decode(token, secret);
+    return validatedAccount.username;
 };
 
 app.post('/api/login', async (req, res) => {
@@ -75,9 +86,9 @@ app.post('/api/login', async (req, res) => {
 
 app.post('/api/loginJWT', async (req, res) => {
     const { token } = req.body;
-      let decodedToken = jwt.decode(token, secret);
+    let username = getValidatedUsernameUnsafe_00(token, secret);
     res.send({
-        error: decodedToken,
+        error: username,
         authenticated: false
     });
     //send some text on succesfull login with username
