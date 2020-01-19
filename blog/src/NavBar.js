@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import {timingAttack, webCachePoisoning} from "./constants/urls";
+import {timingAttack, webCachePoisoning, jwt} from "./constants/urls";
 
 const NavBar = () => (
     <nav>
@@ -13,6 +13,9 @@ const NavBar = () => (
             </li>
             <li>
                 <Link to={webCachePoisoning}>Web cache poisoning</Link>
+            </li>
+            <li>
+                <Link to={jwt}>JasonWeb</Link>
             </li>
         </ul>
     </nav>
