@@ -4,11 +4,13 @@ ssh -i c:\Users\%username%\.ssh\syl-aws-key.pem ec2-user@ec2-107-23-202-11.compu
 
 setup ec2 from scratch
 sudo yum install git
+sudo yum groupinstall 'Development Tools'
+
 
 from https://docs.aws.amazon.com/sdk-for-javascript/v2/developer-guide/setting-up-node-on-ec2-instance.html
 sudo curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.34.0/install.sh | bash
 . ~/.nvm/nvm.sh
-nvm install node
+nvm install nodegit
 npm i -g npm@latest
 
 https://docs.mongodb.com/manual/tutorial/install-mongodb-on-amazon/

