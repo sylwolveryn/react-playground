@@ -18,7 +18,7 @@
   "license": "ISC",
   "dependencies": {
     "body-parser": "^1.18.3",
-    "express": "^4.16.4",
+    "express": "^4.17.3",
     "module_name": "^1.0.0",
     "mongodb": "^3.2.3",
     "node-fetch": "^2.6.0",
